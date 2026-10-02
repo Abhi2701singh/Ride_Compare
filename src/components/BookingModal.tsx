@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RideOption, LocationPoint, BookingStatus, DriverInfo } from '../types';
+import { RideOption, LocationPoint, DriverInfo } from '../types';
 import confetti from 'canvas-confetti';
 import { 
   X, 
@@ -8,13 +8,13 @@ import {
   MessageSquare, 
   ShieldCheck, 
   Key, 
-  MapPin, 
-  Clock, 
-  CreditCard, 
-  Wallet, 
+  QrCode, 
+  Car, 
+  ArrowRight,
   ExternalLink,
-  Car,
-  AlertTriangle
+  Wallet,
+  Sparkles,
+  Receipt
 } from 'lucide-react';
 
 interface BookingModalProps {
@@ -32,14 +32,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   onBookingSuccess
 }) => {
-  const [step, setStep] = useState<'review' | 'matching' | 'confirmed'>('review');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'cash' | 'card' | 'wallet'>('upi');
-  const [status, setStatus] = useState<BookingStatus>('searching');
+  const [step, setStep] = useState<'review' | 'matching' | 'in_progress' | 'pay_at_destination'>('review');
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'upi' | 'card' | 'wallet'>('cash');
   const [otp] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
   const [driver, setDriver] = useState<DriverInfo | null>(null);
   const [etaRemaining, setEtaRemaining] = useState(ride.etaMinutes);
+  const [hasPaid, setHasPaid] = useState(false);
 
-  // Driver names database
   const driverNames = [
     'Rajesh Kumar Sharma',
     'Vikram Singh',
@@ -49,9 +48,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     'Ramesh Patil'
   ];
 
-  const handleConfirmBooking = () => {
+  const handleConfirmRide = () => {
     setStep('matching');
-    setStatus('searching');
 
     // Simulate driver matching radar
     setTimeout(() => {
@@ -70,36 +68,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       };
 
       setDriver(assignedDriver);
-      setStatus('driver_assigned');
-      setStep('confirmed');
-
-      // Trigger Celebration Confetti
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch {
-        // no-op if blocked
-      }
+      setStep('in_progress');
 
       onBookingSuccess(`BK-${Date.now().toString().slice(-6)}`);
-    }, 2800);
+    }, 2400);
   };
 
-  // Countdown timer for driver arriving
-  useEffect(() => {
-    if (step === 'confirmed' && etaRemaining > 1) {
-      const interval = setInterval(() => {
-        setEtaRemaining(prev => Math.max(1, prev - 1));
-      }, 15000);
-      return () => clearInterval(interval);
+  // Reached destination trigger
+  const handleArriveAtDestination = () => {
+    setStep('pay_at_destination');
+  };
+
+  // Mark payment completed at destination
+  const handleFinishPayment = () => {
+    setHasPaid(true);
+    try {
+      confetti({
+        particleCount: 90,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+    } catch {
+      // no-op
     }
-  }, [step, etaRemaining]);
+  };
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative my-6 animate-scaleUp">
         {/* Close Button */}
         <button
@@ -109,15 +104,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* STEP 1: REVIEW & PAYMENT SELECTION */}
+        {/* STEP 1: REVIEW & SELECT HOW TO PAY AT DESTINATION */}
         {step === 'review' && (
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-5">
+          <div className="p-5 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
               <span className={`px-3 py-1 rounded-xl text-xs font-bold ${ride.providerBg}`}>
                 {ride.providerName}
               </span>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                   Confirm Ride Booking
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -126,85 +121,97 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
             </div>
 
+            {/* Crucial Indian Ride-Hailing Notice: Pay After Reaching */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-3.5 rounded-2xl flex items-start gap-2.5 mb-4 text-xs">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-emerald-900 dark:text-emerald-200">
+                  Paise Destination Par Pahunchne Ke Baad Dena Hai (Pay on Arrival)
+                </p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5">
+                  Abhi koi payment nahi karni. Jab driver aapko destination par chhod dega, tab aap Cash ya UPI se pay kar sakte hain.
+                </p>
+              </div>
+            </div>
+
             {/* Route Summary */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 mb-5 text-xs space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700 mb-4 text-xs space-y-2.5">
               <div className="flex items-start gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
                 <div>
-                  <p className="text-slate-400 font-medium">Pickup</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{pickup.name}</p>
+                  <p className="text-slate-400 font-medium text-[11px]">Pickup</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{pickup.shortName}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500 mt-1 shrink-0"></span>
                 <div>
-                  <p className="text-slate-400 font-medium">Destination</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{destination.name}</p>
+                  <p className="text-slate-400 font-medium text-[11px]">Destination</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{destination.shortName}</p>
                 </div>
               </div>
               <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 flex justify-between font-semibold text-slate-600 dark:text-slate-300">
                 <span>Distance: {ride.distanceKm} km</span>
-                <span>Trip Duration: ~{ride.durationMinutes} mins</span>
+                <span>Trip: ~{ride.durationMinutes} mins</span>
               </div>
             </div>
 
-            {/* Payment Method Selector */}
-            <div className="mb-5">
+            {/* Preferred Payment Mode Choice for Destination */}
+            <div className="mb-4">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                SELECT PAYMENT METHOD
+                Aap Destination Par Kaise Pay Karenge? (Choose Payment Mode)
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'upi', label: 'UPI / GPay / PhonePe', icon: '⚡' },
-                  { id: 'cash', label: 'Cash to Driver', icon: '💵' },
-                  { id: 'card', label: 'Credit / Debit Card', icon: '💳' },
-                  { id: 'wallet', label: 'RideCompare Wallet', icon: '👛' },
+                  { id: 'cash', label: 'Cash to Driver', desc: 'Pay cash upon arrival', icon: '💵' },
+                  { id: 'upi', label: 'UPI / QR Code', desc: 'GPay / PhonePe at drop', icon: '📱' },
+                  { id: 'card', label: 'Card Payment', desc: 'Debit / Credit card', icon: '💳' },
+                  { id: 'wallet', label: 'Ride Wallet', desc: 'Balance deduction', icon: '👛' },
                 ].map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => setPaymentMethod(item.id as any)}
-                    className={`p-3 rounded-2xl border text-left text-xs font-semibold flex items-center gap-2.5 transition-all ${
-                      paymentMethod === item.id
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    onClick={() => setPaymentMode(item.id as any)}
+                    className={`p-3 rounded-2xl border text-left text-xs transition-all ${
+                      paymentMode === item.id
+                        ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 font-bold'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium'
                     }`}
                   >
-                    <span className="text-base">{item.icon}</span>
-                    <span className="truncate">{item.label}</span>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-base">{item.icon}</span>
+                      <span className="font-bold">{item.label}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">{item.desc}</p>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Fare Summary Box */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 p-4 rounded-2xl border border-blue-100 dark:border-slate-700 flex items-center justify-between mb-5">
+            {/* Total Fare Due at Destination */}
+            <div className="bg-slate-100 dark:bg-slate-800/80 p-3.5 rounded-2xl flex items-center justify-between mb-4">
               <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Total Payable Fare</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Due Amount after Trip</span>
                 <p className="text-2xl font-black text-slate-900 dark:text-white">₹{ride.fare}</p>
               </div>
-              <div className="text-right text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" />
-                  No Hidden Charges
-                </span>
-                <span className="text-[11px] text-slate-400 font-normal">Includes GST & Tolls</span>
-              </div>
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-1 rounded-xl">
+                Pay to Driver Later
+              </span>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <button
-                onClick={handleConfirmBooking}
+                onClick={handleConfirmRide}
                 className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                <span>Confirm & Request Driver</span>
+                <span>Confirm Ride (No Advance Money Needed)</span>
               </button>
 
               <a
                 href={ride.deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
               >
                 <span>Or Book Directly on {ride.providerName} App</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -213,58 +220,51 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         )}
 
-        {/* STEP 2: RADAR MATCHING ANIMATION */}
+        {/* STEP 2: RADAR MATCHING */}
         {step === 'matching' && (
-          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[380px]">
-            {/* Animated Radar Circle */}
-            <div className="relative flex items-center justify-center w-36 h-36 mb-6">
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[360px]">
+            <div className="relative flex items-center justify-center w-32 h-32 mb-5">
               <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
-              <div className="absolute inset-4 bg-indigo-500/20 rounded-full animate-pulse"></div>
-              <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl">
-                <Car className="w-8 h-8 animate-bounce" />
+              <div className="absolute inset-3 bg-indigo-500/20 rounded-full animate-pulse"></div>
+              <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl text-2xl">
+                🚕
               </div>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              Dispatching Nearest {ride.providerName} Partner...
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">
+              Finding Nearest {ride.providerName} Partner...
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
-              Locating top rated {ride.vehicleName} drivers within 1.5 km of {pickup.shortName}.
+              Searching available {ride.vehicleName} within 1 km of {pickup.shortName}.
             </p>
-
-            <div className="mt-6 flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-4 py-2 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></div>
-              <span>Securing best rate (₹{ride.fare})</span>
-            </div>
           </div>
         )}
 
-        {/* STEP 3: BOOKING CONFIRMED & DRIVER TRACKING */}
-        {step === 'confirmed' && driver && (
-          <div className="p-6">
-            {/* Success Pill */}
+        {/* STEP 3: DRIVER ASSIGNED & IN-PROGRESS (OTP DISPLAYED) */}
+        {step === 'in_progress' && driver && (
+          <div className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
                 <CheckCircle2 className="w-5 h-5" />
-                <span>Ride Confirmed!</span>
+                <span>Driver Assigned!</span>
               </div>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-lg">
                 Arriving in {etaRemaining} mins
               </span>
             </div>
 
-            {/* OTP Showcase Box (Crucial for Indian ride hailing apps) */}
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-4 rounded-2xl flex items-center justify-between mb-5">
+            {/* OTP BOX (Crucial for boarding) */}
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3.5 rounded-2xl flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-amber-500 text-white rounded-xl">
                   <Key className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                  <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
                     ONE-TIME TRIP START OTP
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
-                    Share only after boarding vehicle
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    Gaadi me baithne ke baad driver ko de
                   </p>
                 </div>
               </div>
@@ -273,15 +273,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </span>
             </div>
 
-            {/* Driver Profile Card */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mb-5">
+            {/* Driver Profile */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mb-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-300 dark:bg-slate-700 overflow-hidden flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 text-sm border-2 border-white dark:border-slate-600 shadow">
+                  <div className="w-11 h-11 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-lg border-2 border-white dark:border-slate-600 shadow">
                     👤
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                       {driver.name}
                     </h4>
                     <p className="text-xs text-amber-500 font-semibold flex items-center gap-1">
@@ -294,24 +294,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <span className="px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-extrabold text-xs rounded-lg border border-slate-200 dark:border-slate-700 tracking-wider">
                     {driver.vehicleNumber}
                   </span>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                     {driver.vehicleModel}
                   </p>
                 </div>
               </div>
 
-              {/* Driver Contact Buttons */}
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700">
+              {/* Call/Message */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700">
                 <a
                   href={`tel:${driver.phone}`}
-                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>Call Driver</span>
                 </a>
                 <button
-                  onClick={() => alert(`Message sent to driver: "I am waiting at ${pickup.shortName}"`)}
-                  className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                  onClick={() => alert(`Driver message: "Haan ji, main 2 minute me ${pickup.shortName} par pahunch raha hu."`)}
+                  className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Message</span>
@@ -319,24 +319,112 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
             </div>
 
-            {/* Ride Status Tracker Timeline */}
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl mb-5 text-xs">
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                <span className="flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-                  Driver is en-route
-                </span>
-                <span>Payment: <strong className="uppercase">{paymentMethod}</strong> (₹{ride.fare})</span>
-              </div>
+            {/* Payment reminder banner */}
+            <div className="bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl mb-4 text-xs flex justify-between items-center text-slate-600 dark:text-slate-300">
+              <span>Payable at Destination:</span>
+              <span className="font-bold text-slate-900 dark:text-white text-sm">₹{ride.fare} ({paymentMode.toUpperCase()})</span>
             </div>
 
-            {/* Done CTA */}
+            {/* Destination reached simulation trigger */}
             <button
-              onClick={onClose}
-              className="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-xs hover:opacity-90 active:scale-95 transition-all"
+              onClick={handleArriveAtDestination}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              Back to Comparison Dashboard
+              <span>Destination Par Pahunch Gaye? Click Karein (Pay ₹{ride.fare})</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {/* STEP 4: DESTINATION REACHED - PAY DRIVER NOW */}
+        {step === 'pay_at_destination' && driver && (
+          <div className="p-5 sm:p-6 text-center">
+            {!hasPaid ? (
+              <>
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">
+                  🏁
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Destination Arrived!
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                  Aap {destination.shortName} pahunch chuke hain. Please driver ko payment karein.
+                </p>
+
+                {/* Amount Due Box */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/90 p-4 rounded-2xl border border-blue-100 dark:border-slate-700 mb-4">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Total Amount Due
+                  </span>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white my-0.5">
+                    ₹{ride.fare}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Pay to: <strong>{driver.name}</strong> ({driver.vehicleNumber})
+                  </p>
+                </div>
+
+                {/* UPI QR Code Simulator or Cash */}
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 mb-5">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    <QrCode className="w-4 h-4 text-blue-600" />
+                    <span>Driver Ka UPI QR Code (GPay / PhonePe / Paytm)</span>
+                  </div>
+                  {/* Simulated QR Pattern */}
+                  <div className="w-28 h-28 mx-auto bg-white p-2 rounded-xl shadow border border-slate-200 flex items-center justify-center">
+                    <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center text-white text-[10px] font-bold text-center p-2">
+                      Scan to Pay ₹{ride.fare}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-2 font-medium">
+                    Ya driver ko direct <strong>₹{ride.fare} Cash</strong> de dein.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleFinishPayment}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-lg shadow-emerald-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Maine Paise De Diye (Payment Done)</span>
+                </button>
+              </>
+            ) : (
+              /* PAYMENT CONFIRMED SCREEN */
+              <div className="py-4">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  Trip Completed & Paid!
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1 mb-5">
+                  ₹{ride.fare} successfully paid to {driver.name}. Thank you for riding with {ride.providerName}!
+                </p>
+
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-left mb-5 space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Total Paid:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">₹{ride.fare}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Payment Mode:</span>
+                    <span className="font-semibold text-emerald-600 uppercase">{paymentMode}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Date & Time:</span>
+                    <span className="text-slate-700 dark:text-slate-300">Just now</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-xs"
+                >
+                  Done & Back to Search
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

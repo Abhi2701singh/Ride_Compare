@@ -26,10 +26,11 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, onBook, isCheapest }) 
 
   const getVehicleEmoji = (cat: string) => {
     switch (cat) {
+      case 'e-rickshaw': return '⚡🛺';
       case 'bike': return '🏍️';
       case 'auto': return '🛺';
-      case 'ev': return '⚡';
-      case 'premium': return '✨';
+      case 'ev': return '🔋🚗';
+      case 'premium': return '✨🚘';
       default: return '🚗';
     }
   };

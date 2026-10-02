@@ -25,8 +25,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const routePolylineRef = useRef<L.Polyline | null>(null);
+  const routeGlowRef = useRef<L.Polyline | null>(null);
 
-  // Initialize Map
+  // Initialize Map with 100% Free OpenStreetMap Tiles (No API key / watermark required)
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -36,10 +37,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl: false
       }).setView([pickup.lat, pickup.lng], 13);
 
-      // Clean, modern OpenStreetMap CartoDB Positron / OSM tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // Clean OpenStreetMap standard tiles (100% free, no API key watermark)
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
       // Add Zoom Control to bottom-right
@@ -70,7 +71,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       className: 'custom-pickup-marker',
       html: `
         <div class="relative flex items-center justify-center">
-          <div class="absolute -inset-2 bg-emerald-500/20 rounded-full animate-ping"></div>
+          <div class="absolute -inset-2 bg-emerald-500/30 rounded-full animate-ping"></div>
           <div class="w-8 h-8 bg-emerald-600 border-2 border-white text-white rounded-full shadow-lg flex items-center justify-center font-bold text-xs">
             📍
           </div>
@@ -81,7 +82,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     });
 
     const pickupMarker = L.marker([pickup.lat, pickup.lng], { icon: pickupIcon })
-      .bindPopup(`<div class="font-sans text-xs"><strong>Pickup:</strong><br/>${pickup.shortName}</div>`);
+      .bindPopup(`<div class="font-sans text-xs"><strong>Pickup Location:</strong><br/>${pickup.shortName}</div>`);
     markersLayer.addLayer(pickupMarker);
 
     // 2. Destination Custom Pin (Red)
@@ -102,7 +103,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       .bindPopup(`<div class="font-sans text-xs"><strong>Destination:</strong><br/>${destination.shortName}</div>`);
     markersLayer.addLayer(destMarker);
 
-    // 3. Nearby Live Drivers
+    // 3. Nearby Live Drivers (Cabs, Autos, Bikes, E-Rickshaws)
     nearbyDrivers.forEach(driver => {
       let iconEmoji = '🚗';
       let bgColor = 'bg-black text-white';
@@ -110,12 +111,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       if (driver.type === 'bike') iconEmoji = '🏍️';
       if (driver.type === 'auto') iconEmoji = '🛺';
+      if (driver.type === 'erickshaw') iconEmoji = '⚡🛺';
 
       if (driver.provider === 'ola') {
         bgColor = 'bg-emerald-600 text-white';
         providerName = 'Ola';
       } else if (driver.provider === 'rapido') {
-        bgColor = 'bg-amber-400 text-black';
+        bgColor = 'bg-amber-400 text-black font-bold';
         providerName = 'Rapido';
       } else if (driver.provider === 'blusmart') {
         bgColor = 'bg-blue-600 text-white';
@@ -125,7 +127,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       const driverIcon = L.divIcon({
         className: 'custom-driver-icon',
         html: `
-          <div class="w-7 h-7 ${bgColor} rounded-full shadow-md border border-white flex items-center justify-center text-xs transition-transform transform hover:scale-125 cursor-pointer driver-marker-pulse" title="${providerName}">
+          <div class="w-7 h-7 ${bgColor} rounded-full shadow-md border-2 border-white flex items-center justify-center text-xs transition-transform transform hover:scale-125 cursor-pointer driver-marker-pulse" title="${providerName}">
             ${iconEmoji}
           </div>
         `,
@@ -134,7 +136,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       const dMarker = L.marker([driver.lat, driver.lng], { icon: driverIcon })
-        .bindTooltip(`${providerName} nearby (${driver.type})`, { direction: 'top', offset: [0, -10] });
+        .bindTooltip(`${providerName} ${driver.type} (3 min away)`, { direction: 'top', offset: [0, -10] });
       markersLayer.addLayer(dMarker);
     });
 
@@ -142,43 +144,44 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     if (routePolylineRef.current) {
       map.removeLayer(routePolylineRef.current);
     }
+    if (routeGlowRef.current) {
+      map.removeLayer(routeGlowRef.current);
+    }
 
     if (routeCoords.length > 0) {
-      const polyline = L.polyline(routeCoords, {
-        color: '#2563eb',
-        weight: 5,
-        opacity: 0.85,
-        dashArray: '1, 8',
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
-
-      // Add a subtle outer glow line
-      const outline = L.polyline(routeCoords, {
+      // Outer subtle glow
+      const glow = L.polyline(routeCoords, {
         color: '#60a5fa',
         weight: 8,
         opacity: 0.4
       }).addTo(map);
-      outline.bringToBack();
+      routeGlowRef.current = glow;
 
+      // Primary crisp route line
+      const polyline = L.polyline(routeCoords, {
+        color: '#2563eb',
+        weight: 5,
+        opacity: 0.9,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
       routePolylineRef.current = polyline;
 
-      // Fit map viewport smoothly to cover route
+      // Fit map viewport smoothly
       const bounds = L.latLngBounds([
         [pickup.lat, pickup.lng],
         [destination.lat, destination.lng],
         ...routeCoords
       ]);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     } else {
       const bounds = L.latLngBounds([
         [pickup.lat, pickup.lng],
         [destination.lat, destination.lng]
       ]);
-      map.fitBounds(bounds, { padding: [60, 60] });
+      map.fitBounds(bounds, { padding: [50, 50] });
     }
 
-    // Leaflet needs resize tick
     setTimeout(() => {
       map.invalidateSize();
     }, 200);
@@ -195,7 +198,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[320px] lg:h-[420px] rounded-2xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
+    <div className="relative w-full h-[320px] lg:h-[400px] rounded-3xl overflow-hidden shadow-md border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
       {/* Map DOM target */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
@@ -205,7 +208,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <button
             onClick={onDetectLocation}
             title="Locate my position"
-            className="p-2.5 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur transition-all active:scale-95"
+            className="p-2.5 bg-white/95 dark:bg-slate-800/95 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur transition-all active:scale-95"
           >
             <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </button>
@@ -213,14 +216,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <button
           onClick={handleCenterRoute}
           title="Reset View"
-          className="p-2.5 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur transition-all active:scale-95"
+          className="p-2.5 bg-white/95 dark:bg-slate-800/95 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 backdrop-blur transition-all active:scale-95"
         >
           <Compass className="w-4 h-4 text-slate-600 dark:text-slate-300" />
         </button>
       </div>
 
       {/* Legend Badge */}
-      <div className="absolute bottom-3 left-3 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-md border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-3">
+      <div className="absolute bottom-3 left-3 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-md border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-3">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-950"></span>
           Pickup
@@ -229,9 +232,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 dark:ring-rose-950"></span>
           Drop
         </span>
-        <span className="flex items-center gap-1.5 text-slate-400">
+        <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
           <Layers className="w-3 h-3" />
-          {nearbyDrivers.length} Nearby Cabs
+          {nearbyDrivers.length} Live Vehicles
         </span>
       </div>
 
@@ -241,7 +244,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <div className="bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 animate-pulse">
             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Querying Uber, Ola, Rapido, inDrive, BluSmart...
+              Comparing live rates across providers...
             </span>
           </div>
         </div>

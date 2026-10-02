@@ -1,6 +1,6 @@
 export type ProviderId = 'uber' | 'ola' | 'rapido' | 'indrive' | 'blusmart' | 'nammayatri' | 'yatrisathi';
 
-export type VehicleCategory = 'all' | 'bike' | 'auto' | 'cab' | 'ev' | 'premium';
+export type VehicleCategory = 'all' | 'e-rickshaw' | 'auto' | 'bike' | 'cab' | 'ev' | 'premium';
 
 export type SortOption = 'price_asc' | 'eta_asc' | 'duration_asc' | 'rating_desc';
 
@@ -30,7 +30,7 @@ export interface RideOption {
   providerBorder: string;
   vehicleName: string;
   vehicleModel: string;
-  category: 'bike' | 'auto' | 'cab' | 'ev' | 'premium';
+  category: 'e-rickshaw' | 'bike' | 'auto' | 'cab' | 'ev' | 'premium';
   capacity: number;
   fare: number;
   originalFare?: number;
@@ -102,15 +102,17 @@ export interface AdminSettings {
   totalUserSavings: number;
 }
 
-export interface UserProfile {
+export interface UserAccount {
+  id: string;
   name: string;
-  email: string;
   phone: string;
-  walletBalance: number;
+  email: string;
+  isLoggedIn: boolean;
+  avatar?: string;
   savedPlaces: {
     id: string;
     label: string;
-    type: 'home' | 'work' | 'gym' | 'favorite';
+    type: 'home' | 'work' | 'favorite';
     location: LocationPoint;
   }[];
 }

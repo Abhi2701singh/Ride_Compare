@@ -40,9 +40,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 }) => {
   const categories: { id: VehicleCategory; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All Rides', icon: <Car className="w-4 h-4" /> },
-    { id: 'cab', label: 'Cabs', icon: <Car className="w-4 h-4" /> },
-    { id: 'auto', label: 'Auto', icon: <span className="text-sm">🛺</span> },
-    { id: 'bike', label: 'Bike', icon: <Bike className="w-4 h-4" /> },
+    { id: 'e-rickshaw', label: 'E-Rickshaw (ई-रिक्शा)', icon: <span className="text-sm">⚡🛺</span> },
+    { id: 'auto', label: 'Auto (ऑटो)', icon: <span className="text-sm">🛺</span> },
+    { id: 'bike', label: 'Bike (बाइक)', icon: <Bike className="w-4 h-4" /> },
+    { id: 'cab', label: 'Cabs (कैब)', icon: <Car className="w-4 h-4" /> },
     { id: 'ev', label: 'Electric EV', icon: <Zap className="w-4 h-4 text-emerald-500" /> },
     { id: 'premium', label: 'Premium', icon: <Crown className="w-4 h-4 text-amber-500" /> },
   ];

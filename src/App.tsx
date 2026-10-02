@@ -5,7 +5,8 @@ import {
   SortOption, 
   RideOption, 
   AdminSettings, 
-  ComparisonResult 
+  ComparisonResult,
+  UserAccount 
 } from './types';
 import { CITIES, CityPreset, DEFAULT_PICKUP, DEFAULT_DESTINATION } from './data/popularLocations';
 import { 
@@ -29,16 +30,12 @@ import { BookingModal } from './components/BookingModal';
 import { AdminModal } from './components/AdminModal';
 import { CloudflareGuideModal } from './components/CloudflareGuideModal';
 import { TripsHistoryModal, TripHistoryItem } from './components/TripsHistoryModal';
+import { AuthModal } from './components/AuthModal';
 
 import { 
-  CheckCircle, 
-  Sparkles, 
-  HelpCircle, 
   Info, 
-  ShieldCheck, 
-  Share2, 
   ArrowRight,
-  TrendingDown
+  Sparkles
 } from 'lucide-react';
 
 export function App() {
@@ -46,6 +43,20 @@ export function App() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('ridecompare_theme') === 'dark' ||
       (!('ridecompare_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  // User Auth state
+  const [user, setUser] = useState<UserAccount>(() => {
+    const saved = localStorage.getItem('ridecompare_user');
+    if (saved) return JSON.parse(saved);
+    return {
+      id: 'guest',
+      name: 'Guest User',
+      phone: '',
+      email: '',
+      isLoggedIn: false,
+      savedPlaces: []
+    };
   });
 
   // Cities and locations
@@ -82,8 +93,8 @@ export function App() {
         pickup: DEFAULT_PICKUP,
         destination: DEFAULT_DESTINATION,
         date: 'Today, 2:15 PM',
-        fare: 145,
-        providerName: 'Rapido Bike'
+        fare: 65,
+        providerName: 'Rapido E-Rickshaw'
       }
     ];
   });
@@ -93,6 +104,7 @@ export function App() {
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
   const [showDeployGuide, setShowDeployGuide] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   // Sync Dark Mode class with <html>
   useEffect(() => {
@@ -104,6 +116,11 @@ export function App() {
       localStorage.setItem('ridecompare_theme', 'light');
     }
   }, [isDarkMode]);
+
+  // Sync User in localStorage
+  useEffect(() => {
+    localStorage.setItem('ridecompare_user', JSON.stringify(user));
+  }, [user]);
 
   // Sync Admin Settings
   useEffect(() => {
@@ -127,7 +144,7 @@ export function App() {
     } catch {
       // Fallback already handled inside getRouteDetails
     } finally {
-      setTimeout(() => setIsSearching(false), 400);
+      setTimeout(() => setIsSearching(false), 300);
     }
   }, []);
 
@@ -158,7 +175,6 @@ export function App() {
   // Explicit Search Trigger
   const handleSearch = () => {
     refreshRouteAndDrivers(pickup, destination);
-    // Add to history
     const newItem: TripHistoryItem = {
       id: `search-${Date.now()}`,
       pickup,
@@ -167,7 +183,6 @@ export function App() {
     };
     setTripHistory(prev => [newItem, ...prev.slice(0, 9)]);
 
-    // Update Admin Search Counter
     setAdminSettings(prev => ({
       ...prev,
       simulatedSearchesCount: prev.simulatedSearchesCount + 1
@@ -201,7 +216,6 @@ export function App() {
   const handleBookingSuccess = (bookingId: string) => {
     if (!bookingRide) return;
 
-    // Record in history
     const newItem: TripHistoryItem = {
       id: bookingId,
       pickup,
@@ -212,7 +226,6 @@ export function App() {
     };
     setTripHistory(prev => [newItem, ...prev.slice(0, 9)]);
 
-    // Update Admin Stats
     setAdminSettings(prev => ({
       ...prev,
       simulatedBookingsCount: prev.simulatedBookingsCount + 1,
@@ -224,6 +237,8 @@ export function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors selection:bg-amber-400 selection:text-slate-900">
       {/* Top Navigation */}
       <Navbar
+        user={user}
+        onOpenAuth={() => setShowAuthModal(true)}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onOpenAdmin={() => setShowAdmin(true)}
@@ -233,19 +248,19 @@ export function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
-        {/* Top Hero USP Pill for Resume / Portfolio Showcase */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-4 rounded-3xl shadow-lg shadow-blue-500/15">
+      <main className="flex-1 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 w-full space-y-5">
+        {/* Banner with clear call to action */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3.5 sm:p-4 rounded-3xl shadow-lg shadow-blue-500/15">
           <div className="flex items-center gap-3">
-            <span className="p-2 bg-white/20 rounded-xl text-lg backdrop-blur-sm">
-              ⚡
+            <span className="p-2 bg-white/20 rounded-2xl text-xl backdrop-blur-sm">
+              🚕
             </span>
             <div>
-              <h1 className="text-sm sm:text-base font-extrabold tracking-tight">
-                All Indian Cabs & Autos on One Screen
+              <h1 className="text-sm sm:text-base font-black tracking-tight">
+                RideCompare — India's Unified Ride Aggregator
               </h1>
               <p className="text-xs text-blue-100 font-medium">
-                Compare fares, live ETAs, and surge multipliers across Uber, Ola, Rapido, inDrive, BluSmart & Namma Yatri.
+                Compare Cabs, Autos, Bikes & E-Rickshaws across Uber, Ola, Rapido, inDrive, BluSmart & Namma Yatri.
               </p>
             </div>
           </div>
@@ -253,7 +268,7 @@ export function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowDeployGuide(true)}
-              className="px-3.5 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
             >
               <span>Deploy to Cloudflare Free</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -262,9 +277,9 @@ export function App() {
         </div>
 
         {/* Dual Column Layout: Left Search/Map, Right Rides Comparison */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column (5 Cols): Search Box & Interactive Leaflet Map */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="lg:col-span-5 space-y-4">
             {/* Search Panel */}
             <SearchPanel
               pickup={pickup}
@@ -311,14 +326,14 @@ export function App() {
           </div>
 
           {/* Right Column (7 Cols): Comparison Highlights, Filters & Ride List */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 space-y-4">
             {/* Value Highlight Banner */}
             <ComparisonBanner
               comparison={comparison}
               onSelectRide={(r) => setBookingRide(r)}
             />
 
-            {/* Filter and Sorting Options */}
+            {/* Filter and Sorting Options (Includes E-Rickshaw) */}
             <FilterBar
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
@@ -336,12 +351,12 @@ export function App() {
             {/* Visible Rides Cards List */}
             <div className="space-y-3">
               {visibleRides.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 text-center border border-slate-200 dark:border-slate-800">
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    No rides match your current filters.
+                    No rides found for this category.
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Try resetting filters or checking other categories like Auto or Bike.
+                    Try switching back to "All Rides" or reset your filters.
                   </p>
                   <button
                     onClick={() => {
@@ -350,9 +365,9 @@ export function App() {
                       setFilterOnlyEV(false);
                       setFilterNoSurge(false);
                     }}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
+                    className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
                   >
-                    Reset All Filters
+                    Show All Rides
                   </button>
                 </div>
               ) : (
@@ -368,10 +383,10 @@ export function App() {
             </div>
 
             {/* Informational Footer Pill */}
-            <div className="bg-slate-100 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-start gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="bg-slate-100 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-start gap-2.5 text-xs text-slate-500 dark:text-slate-400">
               <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
               <p>
-                <strong>How RideCompare Works:</strong> Fares are computed via official provider rate algorithms (base fare + per km + dynamic surge + toll estimate). Real-time road travel distances and geometries are resolved using Open Source Routing Machine (OSRM) and OpenStreetMap.
+                <strong>Payment Policy:</strong> All rides on RideCompare follow standard Indian ride policies — <em>Pay ₹ directly to the driver via UPI or Cash after reaching your destination</em>. No advance charges required.
               </p>
             </div>
           </div>
@@ -379,13 +394,13 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-8 transition-colors">
+      <footer className="mt-12 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800 dark:text-slate-200">
               🚕 RideCompare Platform
             </span>
-            <span>• Built for fast, cost-effective Indian travel</span>
+            <span>• Uber, Ola, Rapido, inDrive, BluSmart & E-Rickshaws</span>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -406,7 +421,7 @@ export function App() {
       </footer>
 
       {/* MODALS */}
-      {/* 1. Booking Flow Modal */}
+      {/* 1. Booking Flow Modal (With Pay at Destination Flow) */}
       {bookingRide && (
         <BookingModal
           ride={bookingRide}
@@ -446,9 +461,17 @@ export function App() {
           onClose={() => setShowHistory(false)}
         />
       )}
+
+      {/* 5. User Login / Profile Modal */}
+      {showAuthModal && (
+        <AuthModal
+          user={user}
+          onUpdateUser={setUser}
+          onClose={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 }
 
 export default App;
-

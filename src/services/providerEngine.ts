@@ -210,6 +210,33 @@ export function calculateRideComparisons(
       deepLink: `https://book.olacabs.com/?pickup_lat=${pickup.lat}&pickup_lng=${pickup.lng}`
     }));
 
+    // Ola E-Rickshaw
+    rides.push(createRideOption({
+      id: 'ola-erickshaw',
+      providerId: 'ola',
+      providerName: 'Ola',
+      providerColor: '#00d285',
+      providerBg: 'bg-emerald-600 text-white',
+      providerBorder: 'border-emerald-500',
+      vehicleName: 'Ola E-Rickshaw',
+      vehicleModel: 'Mahindra Treo / Battery Rickshaw',
+      category: 'e-rickshaw',
+      capacity: 4,
+      baseFare: 18,
+      perKmRate: 6.5,
+      timeRate: 0.6,
+      distanceKm: dist,
+      durationMin: Math.round(baseDurationMinutes * 1.1),
+      etaMin: 3,
+      surge: 1.0,
+      rating: 4.6,
+      ratingCount: '410K+',
+      isElectric: true,
+      features: ['Electric battery ride', 'Doorstep pickup', 'Zero smoke'],
+      cancellationPolicy: 'Free cancellation within 2 mins',
+      deepLink: `https://book.olacabs.com/?pickup_lat=${pickup.lat}&pickup_lng=${pickup.lng}`
+    }));
+
     // Ola Mini
     rides.push(createRideOption({
       id: 'ola-mini',
@@ -315,6 +342,33 @@ export function calculateRideComparisons(
       rating: 4.7,
       ratingCount: '1.1M+',
       features: ['Direct auto price', 'Zero surge'],
+      cancellationPolicy: 'Zero cancellation fee',
+      deepLink: 'https://rapido.bike'
+    }));
+
+    // Rapido E-Rickshaw (Electric Battery Rickshaw)
+    rides.push(createRideOption({
+      id: 'rapido-erickshaw',
+      providerId: 'rapido',
+      providerName: 'Rapido',
+      providerColor: '#eab308',
+      providerBg: 'bg-amber-400 text-slate-900',
+      providerBorder: 'border-amber-400',
+      vehicleName: 'Rapido E-Rickshaw',
+      vehicleModel: 'Battery Powered E-Rickshaw (Toto)',
+      category: 'e-rickshaw',
+      capacity: 4,
+      baseFare: 15,
+      perKmRate: 6.0,
+      timeRate: 0.5,
+      distanceKm: dist,
+      durationMin: Math.round(baseDurationMinutes * 1.1),
+      etaMin: 2,
+      surge: 1.0,
+      rating: 4.7,
+      ratingCount: '780K+',
+      isElectric: true,
+      features: ['Lowest fare option in India', '100% Battery Powered', 'Ideal for metro & local travel'],
       cancellationPolicy: 'Zero cancellation fee',
       deepLink: 'https://rapido.bike'
     }));
@@ -482,6 +536,33 @@ export function calculateRideComparisons(
       rating: 4.7,
       ratingCount: '480K+',
       features: ['100% direct driver pay', '0% commission', 'ONDC open mobility'],
+      cancellationPolicy: 'No cancellation charges',
+      deepLink: 'https://nammayatri.in'
+    }));
+
+    // Yatri E-Rickshaw (Toto)
+    rides.push(createRideOption({
+      id: 'yatri-erickshaw',
+      providerId: 'nammayatri',
+      providerName: 'Namma Yatri',
+      providerColor: '#f97316',
+      providerBg: 'bg-orange-500 text-white',
+      providerBorder: 'border-orange-500',
+      vehicleName: 'Yatri E-Rickshaw (Toto)',
+      vehicleModel: 'Open Battery Rickshaw',
+      category: 'e-rickshaw',
+      capacity: 4,
+      baseFare: 12,
+      perKmRate: 5.5,
+      timeRate: 0.4,
+      distanceKm: dist,
+      durationMin: Math.round(baseDurationMinutes * 1.1),
+      etaMin: 2,
+      surge: 1.0,
+      rating: 4.8,
+      ratingCount: '350K+',
+      isElectric: true,
+      features: ['Direct driver pay', 'Cheapest metro connector', '0% commission'],
       cancellationPolicy: 'No cancellation charges',
       deepLink: 'https://nammayatri.in'
     }));
