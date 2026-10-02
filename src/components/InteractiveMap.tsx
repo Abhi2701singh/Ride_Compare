@@ -182,10 +182,17 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       map.fitBounds(bounds, { padding: [50, 50] });
     }
 
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    const timer = setTimeout(() => {
+      try {
+        if (mapInstanceRef.current && mapContainerRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      } catch {
+        // Safe catch
+      }
+    }, 250);
 
+    return () => clearTimeout(timer);
   }, [pickup, destination, routeCoords, nearbyDrivers]);
 
   const handleCenterRoute = () => {
